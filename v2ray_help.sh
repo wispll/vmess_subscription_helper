@@ -4,27 +4,27 @@ cache_directory=~/.config/v2ray_helper
 cache_path=$cache_directory/cache
 
 function normalParse(){
-    declare -A subscribe
-    subscribe=(
-        [subscribe_name]='your_subscribe_url'   #替换成机场的url,名字随意
+    declare -A subscriptions
+    subscriptions=(
+        [name]='subscription_url'   #替换成机场的url,名字随意
     )
 
     #select subscibe
-    for node in ${!subscribe[@]}
+    for node in ${!subscriptions[@]}
     do
-        printf "[%b] %b\n" "${node}" "${subscribe[${node}]}"
+        printf "[%b] %b\n" "${node}" "${subscriptions[${node}]}"
     done
 
-    read -p "select a subscribe > " node
-    if [ -z "$node" ] || [ -z ${subscribe[$node]} ]; then
+    read -p "select a subscription > " node
+    if [ -z "$node" ] || [ -z ${subscriptions[$node]} ]; then
 
-       echo -e "\033[31m bad subscribe name\033[0m" >&2
+       echo -e "\033[31m bad subscription name\033[0m" >&2
        exit
 
     fi
 
     #decode format
-    vmess_str=$(curl -s ${subscribe[${node}]} | base64 -di | sed '/^[^v]/d') #sed "/^(?!vmess)/d" sed不支持断言
+    vmess_str=$(curl -s ${subscriptions[${node}]} | base64 -di | sed '/^[^v]/d') #sed "/^(?!vmess)/d" sed不支持断言
     vmess_arr=(${vmess_str//'vmess://'/})
     for i in ${!vmess_arr[@]}
     do
@@ -36,10 +36,10 @@ function normalParse(){
     for i in ${!vmess_arr[@]}
     do
         read address name < <(echo $(jq -r '.add, .ps' <<< "${vmess_arr[i]}"))
-        printf "%b\t%b\t%b\n"\
+        printf "%b\t%b\t%bms\n"\
             "$i"\
             "$name"\
-            "$(curl -s --connect-timeout 2 -o /dev/null -w "%{time_connect}" "$address")" 
+            "$(echo "scale=0;$(curl -s --connect-timeout 2 -o /dev/null -w "%{time_connect}" "$address")*1000/1" | bc)" 
     done
 
     read -p "select a connection > " index
